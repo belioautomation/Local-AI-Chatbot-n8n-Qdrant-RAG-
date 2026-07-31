@@ -1,0 +1,541 @@
+ <!-- Knowledge Base Manager.json is currently under development and has not been included in this repository yet. -->
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -800,
+        896
+      ],
+      "id": "f9369b76-6628-4417-9df0-0ca54a32c49d",
+      "name": "1. Chat Trigger",
+      "webhookId": "30324e05-f47d-4d02-acbd-96d8a273fca3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an AI command interpreter for a Knowledge Base Manager.\n\nYour job is to classify the user's request.\n\nYou NEVER answer the user's question.\n\nYou NEVER search the knowledge base.\n\nYou NEVER explain anything.\n\nDetermine which command the user wants.\n\nSupported commands:\n\nLIST_DOCUMENTS\nSEARCH_DOCUMENTS\nDELETE_DOCUMENT\nSHOW_STATS\nHELP\n\nIf the command requires a document name or search term, extract it into \"query\".\n\nIf none exists, return an empty string.\n\nAlways return valid JSON.\n\nDo not return markdown.\n\nDo not include explanations."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        1216
+      ],
+      "id": "93c5abe7-9887-4c71-8eba-39f4d8833d62",
+      "name": "2. AI Agent (Command Interpreter)"
+    },
+    {
+      "parameters": {
+        "model": "cohere/north-mini-code:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        368,
+        1440
+      ],
+      "id": "ac014a7a-7680-450a-a768-5796f8cd4887",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "PYzDQpka4u45qvfm",
+          "name": "Second acc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an intent router.\n\nClassify the user's request into one of two destinations.\n\nCHATBOT\n- answer questions about uploaded documents\n- summarize documents\n- explain document contents\n- answer questions using the knowledge base\n\nKB_MANAGER\n- list documents\n- search documents\n- delete document\n- remove document\n- rename document\n- show statistics\n- manage the knowledge base\n- help\n\nReturn ONLY valid JSON.\n\nExample:\n\n{\n  \"route\": \"CHATBOT\",\n  \"message\": \"Summarize the uploaded document.\"\n}\n\nor\n\n{\n  \"route\": \"KB_MANAGER\",\n  \"message\": \"List documents\"\n}\n\nDo not include explanations.\nDo not use markdown."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -576,
+        896
+      ],
+      "id": "817c59eb-25f9-4c32-b40e-4b34d65f81a4",
+      "name": "2. Intent Router"
+    },
+    {
+      "parameters": {
+        "model": "cohere/north-mini-code:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        1120
+      ],
+      "id": "094509b4-adb8-4b22-8429-3b73d48a8187",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "PYzDQpka4u45qvfm",
+          "name": "Second acc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "CHATBOT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d4e264e2-21aa-4096-8b68-a22e6b0e475b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CHATBOT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "81ccfa86-40b3-4e90-8718-0a5b78fabd8f",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "KB_MANAGER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "KB_MANAGER"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        896
+      ],
+      "id": "6413e31a-093e-4a4c-9448-0e4ced9d62b3",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.output);\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        896
+      ],
+      "id": "364ec343-9adb-432c-876b-a60de61403f9",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.output);\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        1216
+      ],
+      "id": "1afb9b9c-90f7-43cc-ad79-145e86411b4b",
+      "name": "3. Parse Json"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "LIST_DOCUMENTS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "19caa77f-0b86-4d14-850d-368dade59ecd"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LIST_DOCUMENTS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f7980601-e2da-4c81-a3d5-da299b4de3df",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "SEARCH_DOCUMENTS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SEARCH_DOCUMENTS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "32e47dae-2cb5-4915-a578-c01a7561ee46",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "DELETE_DOCUMENT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DELETE_DOCUMENT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ab915239-aae7-482a-b2df-0a98056c75d1",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "SHOW_STATS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SHOW_STATS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bdaccf49-f9cc-411a-957e-9adcfd005361",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "HELP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HELP"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        1168
+      ],
+      "id": "22ae3156-dd0a-4038-9c9e-0dd55a54276d",
+      "name": "4. Command Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:6333/collections/knowledge-base/points/scroll",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"limit\": 100,\n  \"with_payload\": true,\n  \"with_vector\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1168,
+        768
+      ],
+      "id": "f1035660-7a23-4df0-910c-74fb308c11e9",
+      "name": "5. LIST_DOCUMENTS"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:6333/dashboard#/collections/knowledge-base",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1168,
+        960
+      ],
+      "id": "7f33c7df-e54a-4ff3-927a-8fd6d0120940",
+      "name": "6. SEARCH_DOCUMENTS"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:6333/dashboard#/collections/knowledge-base",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1168,
+        1152
+      ],
+      "id": "0e7e9ac5-582f-4de5-b91a-fb6709f1020a",
+      "name": "7. DELETE_DOCUMENTS"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:6333/dashboard#/collections/knowledge-base",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1168,
+        1344
+      ],
+      "id": "3370638c-adea-4657-8d07-5af2555a7354",
+      "name": "8. SHOW_STATS"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:6333/dashboard#/collections/knowledge-base",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1168,
+        1536
+      ],
+      "id": "05bf6e46-65e8-4009-98d1-6bff454be1ab",
+      "name": "9. HELP"
+    }
+  ],
+  "connections": {
+    "1. Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "2. Intent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. AI Agent (Command Interpreter)": {
+      "main": [
+        [
+          {
+            "node": "3. Parse Json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "2. AI Agent (Command Interpreter)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Intent Router": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "2. Intent Router",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "2. AI Agent (Command Interpreter)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Parse Json": {
+      "main": [
+        [
+          {
+            "node": "4. Command Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Command Switch": {
+      "main": [
+        [
+          {
+            "node": "5. LIST_DOCUMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6. SEARCH_DOCUMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7. DELETE_DOCUMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "8. SHOW_STATS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9. HELP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  }
+}
