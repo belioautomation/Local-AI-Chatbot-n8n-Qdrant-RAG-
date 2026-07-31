@@ -1,0 +1,243 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -800,
+        896
+      ],
+      "id": "f9369b76-6628-4417-9df0-0ca54a32c49d",
+      "name": "1. Chat Trigger",
+      "webhookId": "30324e05-f47d-4d02-acbd-96d8a273fca3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "You are an AI assistant connected to a document knowledge base.\n\nAlways search the Knowledge Base Search tool before answering questions about uploaded documents.\n\nUse the retrieved information to answer naturally.\n\nDo not mention phrases like:\n- \"Based on the document I found\"\n- \"According to the retrieved context\"\n- \"The search results show\"\n\nInstead, answer directly as if you already know the information.\n\nIf the knowledge base contains multiple matching documents, ask the user which document they mean.\n\nIf no information is found, reply exactly:\n\n\"I couldn't find that information in the knowledge base.\"",
+          "maxIterations": 5,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        256,
+        496
+      ],
+      "id": "abe0ccc7-70d8-4f26-a44b-1ec027733dc1",
+      "name": "2. AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        432,
+        928
+      ],
+      "id": "05cfffb2-5618-413d-9845-f323538077e7",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ArlGq2btEFPJpUd0",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "cohere/north-mini-code:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        224,
+        720
+      ],
+      "id": "162416c4-3557-443b-bb99-e6c325269b46",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "PYzDQpka4u45qvfm",
+          "name": "Second acc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an intent router.\n\nClassify the user's request into one of two destinations.\n\nCHATBOT\n- answer questions about uploaded documents\n- summarize documents\n- explain document contents\n- answer questions using the knowledge base\n\nKB_MANAGER\n- list documents\n- search documents\n- delete document\n- remove document\n- rename document\n- show statistics\n- manage the knowledge base\n- help\n\nReturn ONLY valid JSON.\n\nExample:\n\n{\n  \"route\": \"CHATBOT\",\n  \"message\": \"Summarize the uploaded document.\"\n}\n\nor\n\n{\n  \"route\": \"KB_MANAGER\",\n  \"message\": \"List documents\"\n}\n\nDo not include explanations.\nDo not use markdown."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -576,
+        896
+      ],
+      "id": "817c59eb-25f9-4c32-b40e-4b34d65f81a4",
+      "name": "2. Intent Router"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "CHATBOT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d4e264e2-21aa-4096-8b68-a22e6b0e475b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CHATBOT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "81ccfa86-40b3-4e90-8718-0a5b78fabd8f",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "KB_MANAGER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "KB_MANAGER"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        896
+      ],
+      "id": "6413e31a-093e-4a4c-9448-0e4ced9d62b3",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.output);\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        896
+      ],
+      "id": "364ec343-9adb-432c-876b-a60de61403f9",
+      "name": "Parse JSON"
+    }
+  ],
+  "connections": {
+    "1. Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "2. Intent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        []
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "2. AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Intent Router": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "2. AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  }
+}
