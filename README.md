@@ -90,11 +90,11 @@ The result is a private AI assistant capable of answering questions using your o
 
 # 📸 Workflow Screenshot
 
-> Replace this section with your workflow screenshot.
+The image below shows the complete **Local AI Chatbot (RAG)** workflow implemented in **n8n**, including document indexing, vector storage in Qdrant, and AI-powered question answering.
 
-```
-workflow.png
-```
+<p align="center">
+  <img src="screenshots/workflow.png" alt="Local AI Chatbot Workflow" width="100%">
+</p>
 
 ---
 
