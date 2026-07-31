@@ -135,6 +135,7 @@ Local-AI-Chatbot-n8n-Qdrant-RAG/
 │   ├── Knowledge Base Indexer.json
 │   ├── Local AI Chatbot.json
 │   └── Knowledge Base Manager.json
+|  <!-- Knowledge Base Manager.json is currently under development and has not been included in this repository yet. -->
 ├── screenshots/
 │   └── workflow.png
 └── LICENSE
